@@ -1,15 +1,54 @@
 plugins {
     id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
 group = 'com.chaotic_loom'
-version = '1.0-SNAPSHOT'
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://maven.neoforged.net/releases' }
+    maven { url = 'https://maven.parchmentmc.org' }
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
+    // Compile-only dependencies - users must provide these in their buildscript
+    compileOnly 'net.fabricmc:fabric-loom:1.7-SNAPSHOT'
+    compileOnly 'net.minecraftforge.gradle:ForgeGradle:6.0.+'
+    compileOnly 'net.neoforged.gradle:userdev:7.0.+'
+    compileOnly 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release.set(17)
+}
 
 gradlePlugin {
     plugins {
-        dataFolder {
-            id = 'com.chaotic_loom.datafolder'
-            implementationClass = 'com.chaotic_loom.DataFolderPlugin'
+        warp {
+            id = 'com.chaotic_loom.warp'
+            implementationClass = 'com.chaotic_loom.warp.WarpPlugin'
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
         }
     }
 }

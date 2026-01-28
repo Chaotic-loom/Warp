@@ -1,0 +1,6 @@
+//archivesBaseName = "{{ MOD_ID }}-fabric"
+
+// You can add extra, unique dependencies here if really needed
+dependencies {
+    // implementation "com.example:something-unique:1.0.0"
+}

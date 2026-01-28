@@ -1,0 +1,13 @@
+{
+  "1.20.1": {
+    "fabric": "0.16.10",
+    "forge": "47.4.0",
+    "neoforge": "47.1.106",
+    "parchment": "2023.09.03",
+    "fabric_loader": "0.15.11",
+    "minecraft_range": "[1.20.1]",
+    "forge_loader_range": "[47,48)",
+    "neoforge_loader_range": "[47,48)",
+    "java_version": "17"
+  }
+}
