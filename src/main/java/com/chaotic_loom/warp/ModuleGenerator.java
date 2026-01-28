@@ -1,6 +1,6 @@
 package com.chaotic_loom.warp;
 
-import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 
 import java.io.*;
 import java.net.URL;
@@ -16,23 +16,23 @@ import java.util.zip.ZipInputStream;
 public class ModuleGenerator {
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{\\s*([A-Z0-9_]+)\\s*\\}\\}");
 
-    public static void generate(Project rootProject, String moduleName, Map<String, String> tokens) {
-        File moduleDir = rootProject.file(moduleName);
+    public static void generate(File rootDir, Logger logger, String moduleName, Map<String, String> tokens) {
+        File moduleDir = new File(rootDir, moduleName);
         if (moduleDir.exists()) return; // Safety: Never overwrite existing user modules
 
-        rootProject.getLogger().lifecycle("Warp: Scaffolding missing module '" + moduleName + "'...");
+        logger.lifecycle("Warp: Scaffolding missing module '" + moduleName + "'...");
         moduleDir.mkdirs();
 
         try {
-            copyTemplates(rootProject, moduleName, tokens);
+            copyTemplates(rootDir, logger, moduleName, tokens);
         } catch (Exception e) {
             throw new RuntimeException("Failed to scaffold module: " + moduleName, e);
         }
 
-        rootProject.getLogger().lifecycle("Warp: Created " + moduleName + ". PLEASE RE-SYNC GRADLE!");
+        logger.lifecycle("Warp: Created " + moduleName + ". PLEASE RE-SYNC GRADLE!");
     }
 
-    private static void copyTemplates(Project project, String moduleName, Map<String, String> tokens) throws IOException {
+    private static void copyTemplates(File rootDir, Logger logger, String moduleName, Map<String, String> tokens) throws IOException {
         // Find the JAR location of this plugin
         CodeSource src = ModuleGenerator.class.getProtectionDomain().getCodeSource();
         if (src == null) return;
@@ -69,7 +69,7 @@ public class ModuleGenerator {
                 }
 
                 // Create Target File
-                File targetFile = new File(project.file(moduleName), relativePath);
+                File targetFile = new File(new File(rootDir, moduleName), relativePath);
                 targetFile.getParentFile().mkdirs();
 
                 // Read, Replace, Write
