@@ -1,20 +1,15 @@
 plugins {
-    id 'java'
+    id 'java-gradle-plugin'
 }
 
 group = 'com.chaotic_loom'
 version = '1.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-test {
-    useJUnitPlatform()
+gradlePlugin {
+    plugins {
+        dataFolder {
+            id = 'com.chaotic_loom.datafolder'
+            implementationClass = 'com.chaotic_loom.DataFolderPlugin'
+        }
+    }
 }
