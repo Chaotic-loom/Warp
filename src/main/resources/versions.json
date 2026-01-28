@@ -7,7 +7,6 @@
     "fabric_loader": "0.15.11",
     "minecraft_range": "[1.20.1]",
     "forge_loader_range": "[47,48)",
-    "neoforge_loader_range": "[47,48)",
     "java_version": "17"
   }
 }
