@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.language.jvm.tasks.ProcessResources;
+
 import java.io.File;
 import java.util.Set;
 
@@ -138,8 +140,36 @@ public class WarpPlugin implements Plugin<Settings> {
             // 7. Add Minecraft Dependencies
             project.getDependencies().add("minecraft", "com.mojang:minecraft:1.20.1");
             project.getDependencies().add("mappings", "net.fabricmc:yarn:1.20.1+build.2:v2");
-            project.getDependencies().add("modImplementation", "net.fabricmc:fabric-loader:0.16.9");
+            project.getDependencies().add("modImplementation", "net.fabricmc:fabric-loader:0.16.10");
 
+            // Define the variables to replace
+            Map<String, Object> replacements = new HashMap<>();
+
+            // Core Identity
+            replacements.put("mod_id", "warptest");
+            replacements.put("mod_name", "Warp Test");
+            replacements.put("version", "1.0.0");
+
+            // Metadata (The missing ones causing the crash)
+            replacements.put("description", "A test mod for Warp.");
+            replacements.put("mod_author", "Me");
+            replacements.put("license", "MIT");
+            replacements.put("java_version", "17");
+
+            // Versions
+            replacements.put("minecraft_version", "1.20.1");
+            // Some templates use specific loader version keys too, adding them just in case:
+            replacements.put("fabric_loader_version", "0.16.10");
+            replacements.put("fabric_version", "0.91.0+1.20.1"); // Fabric API version if needed
+
+            // Configure the ProcessResources task
+            project.getTasks().named("processResources", ProcessResources.class, task -> {
+                task.getInputs().properties(replacements);
+
+                task.filesMatching("fabric.mod.json", file -> {
+                    file.expand(replacements);
+                });
+            });
         } catch (Exception e) {
             throw new RuntimeException("Orchestrator failed to load Fabric Loom.", e);
         }
