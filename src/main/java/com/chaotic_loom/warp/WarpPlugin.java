@@ -77,25 +77,20 @@ public class WarpPlugin implements Plugin<Settings> {
     private void configureFabricModule(Project project) {
         System.out.println("Orchestrator: Injecting Fabric Loom into " + project.getName() + "...");
 
-        // 2. Define where to download Loom from (for the Project context)
+        // 1. Setup Repositories
         project.getRepositories().maven(repo -> {
             repo.setUrl("https://maven.fabricmc.net/");
         });
         project.getRepositories().mavenCentral();
 
         try {
-            // 3. Create a Detached Configuration to resolve the artifact
-            // This downloads the plugin JAR + dependencies without polluting the project
+            // 2. Download Loom and Dependencies
             Configuration config = project.getConfigurations().detachedConfiguration(
                     project.getDependencies().create(LOOM_DEPENDENCY)
             );
-            config.setTransitive(true); // Must download dependencies (Gson, Commons IO, etc.)
-
-            // 4. Resolve the files
+            config.setTransitive(true);
             Set<File> files = config.resolve();
 
-            // 5. Create a clean ClassLoader
-            // Parent is 'buildscript' loader so Loom can see Gradle classes
             URL[] urls = files.stream()
                     .map(file -> {
                         try { return file.toURI().toURL(); }
@@ -103,33 +98,50 @@ public class WarpPlugin implements Plugin<Settings> {
                     })
                     .toArray(URL[]::new);
 
-            URLClassLoader loader = new URLClassLoader(urls, project.getBuildscript().getClassLoader());
+            // 3. Determine the Parent ClassLoader
+            // CRITICAL FIX: We must use the classloader that loaded WarpPlugin.
+            // This ensures the 'Plugin' interface matches what Gradle expects.
+            ClassLoader parentLoader = WarpPlugin.class.getClassLoader();
+            Class<?> pluginClass = null;
 
-            // 6. Load the BOOTSTRAP class
-            // Loom uses a bootstrap class to initialize.
-            // The class 'net.fabricmc.loom.LoomGradlePlugin' is internal.
-            Class<?> pluginClass = loader.loadClass("net.fabricmc.loom.bootstrap.LoomGradlePluginBootstrap");
+            // 4. Try to Inject into the Current Loader (The "Perfect" Fix)
+            // If we can add the URLs to the current loader, Gradle treats the classes as "known/managed".
+            try {
+                if (parentLoader instanceof URLClassLoader) {
+                    java.lang.reflect.Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+                    method.setAccessible(true);
+                    for (URL url : urls) {
+                        method.invoke(parentLoader, url);
+                    }
+                    // Load directly from our own loader
+                    pluginClass = parentLoader.loadClass("net.fabricmc.loom.bootstrap.LoomGradlePluginBootstrap");
+                    System.out.println("Orchestrator: Successfully injected Loom into the plugin ClassLoader.");
+                }
+            } catch (Throwable t) {
+                // Java 16+ might block this due to module encapsulation.
+                System.out.println("Orchestrator: Injection failed (Java 16+ restrictions), falling back to isolated loader.");
+            }
 
-            // 7. Apply the plugin
+            // 5. Fallback: Create a Child ClassLoader (The "Compatible" Fix)
+            if (pluginClass == null) {
+                // We use WarpPlugin's loader as parent to fix "Not a valid plugin" error.
+                URLClassLoader loader = new URLClassLoader(urls, parentLoader);
+                pluginClass = loader.loadClass("net.fabricmc.loom.bootstrap.LoomGradlePluginBootstrap");
+            }
+
+            // 6. Apply the Plugin
+            // We apply the class object directly.
             project.getPluginManager().apply(pluginClass);
 
             System.out.println("Orchestrator: Loom applied. Configuring dependencies...");
 
-            // 8. CRITICAL: Add the required Minecraft dependencies
-            // Since Loom is now applied, the "minecraft", "mappings", etc. configurations exist.
-
-            // Add Minecraft (Adjust version as needed or read from extension)
+            // 7. Add Minecraft Dependencies
             project.getDependencies().add("minecraft", "com.mojang:minecraft:1.20.1");
-
-            // Add Mappings
             project.getDependencies().add("mappings", "net.fabricmc:yarn:1.20.1+build.2:v2");
-
-            // Add Fabric Loader
             project.getDependencies().add("modImplementation", "net.fabricmc:fabric-loader:0.16.9");
 
         } catch (Exception e) {
-            throw new RuntimeException("Orchestrator failed to load Fabric Loom. \n" +
-                    "If you are on Gradle 8.14+, ensure you are using a compatible Loom version (1.9-SNAPSHOT+).", e);
+            throw new RuntimeException("Orchestrator failed to load Fabric Loom.", e);
         }
     }
 
