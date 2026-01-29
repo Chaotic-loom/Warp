@@ -18,12 +18,9 @@ repositories {
 
 dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
-    
-    // Compile-only dependencies - users must provide these in their buildscript
-    compileOnly 'net.fabricmc:fabric-loom:1.7-SNAPSHOT'
-    compileOnly 'net.minecraftforge.gradle:ForgeGradle:6.0.+'
-    compileOnly 'net.neoforged.gradle:userdev:7.0.+'
-    compileOnly 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+
+    implementation gradleApi()
+    implementation localGroovy()
 }
 
 java {

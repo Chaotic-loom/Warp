@@ -1,5 +1,6 @@
 package com.chaotic_loom.warp;
 
+import org.gradle.api.initialization.Settings;
 import org.gradle.api.logging.Logger;
 
 import java.io.*;
@@ -16,23 +17,20 @@ import java.util.zip.ZipInputStream;
 public class ModuleGenerator {
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{\\s*([A-Z0-9_]+)\\s*\\}\\}");
 
-    public static void generate(File rootDir, Logger logger, String moduleName, Map<String, String> tokens) {
+    public static void generate(File rootDir, String moduleName, Map<String, String> tokens) {
         File moduleDir = new File(rootDir, moduleName);
         if (moduleDir.exists()) return; // Safety: Never overwrite existing user modules
 
-        logger.lifecycle("Warp: Scaffolding missing module '" + moduleName + "'...");
         moduleDir.mkdirs();
 
         try {
-            copyTemplates(rootDir, logger, moduleName, tokens);
+            copyTemplates(rootDir, moduleName, tokens);
         } catch (Exception e) {
             throw new RuntimeException("Failed to scaffold module: " + moduleName, e);
         }
-
-        logger.lifecycle("Warp: Created " + moduleName + ". PLEASE RE-SYNC GRADLE!");
     }
 
-    private static void copyTemplates(File rootDir, Logger logger, String moduleName, Map<String, String> tokens) throws IOException {
+    private static void copyTemplates(File rootDir, String moduleName, Map<String, String> tokens) throws IOException {
         // Find the JAR location of this plugin
         CodeSource src = ModuleGenerator.class.getProtectionDomain().getCodeSource();
         if (src == null) return;
@@ -102,5 +100,16 @@ public class ModuleGenerator {
 
         // Write to disk
         Files.writeString(target.toPath(), sb.toString());
+    }
+
+    public static void manageModule(Settings settings, String name, boolean enabled, boolean hasConfig, Map<String, String> tokens) {
+        if (enabled) {
+            settings.include(name);
+            if (hasConfig) {
+                ModuleGenerator.generate(settings.getRootDir(), name, tokens);
+            }
+        } else {
+            settings.getRootProject().getChildren().removeIf(child -> child.getName().equals(name));
+        }
     }
 }
