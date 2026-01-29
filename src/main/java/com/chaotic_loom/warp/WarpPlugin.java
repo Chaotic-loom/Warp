@@ -58,7 +58,7 @@ public class WarpPlugin implements Plugin<Settings> {
         settings.getGradle().beforeProject(project -> {
             LOGGER.lifecycle("Project found: " + project.getName());
             if (project.getName().equals("fabric")) {
-                configureFabricModule(project);
+                configureFabricModule(project, extension);
             }
         });
 
@@ -76,7 +76,7 @@ public class WarpPlugin implements Plugin<Settings> {
         });
     }
 
-    private void configureFabricModule(Project project) {
+    private void configureFabricModule(Project project, WarpExtension extension) {
         System.out.println("Orchestrator: Injecting Fabric Loom into " + project.getName() + "...");
 
         // 1. Setup Repositories
@@ -146,9 +146,10 @@ public class WarpPlugin implements Plugin<Settings> {
             Map<String, Object> replacements = new HashMap<>();
 
             // Core Identity
-            replacements.put("mod_id", "warptest");
+            replacements.put("mod_id", extension.getModId().get());
             replacements.put("mod_name", "Warp Test");
             replacements.put("version", "1.0.0");
+            replacements.put("group", extension.getModGroup().get());
 
             // Metadata (The missing ones causing the crash)
             replacements.put("description", "A test mod for Warp.");
@@ -185,7 +186,7 @@ public class WarpPlugin implements Plugin<Settings> {
         Map<String, String> tokens = new HashMap<>();
         tokens.put("MOD_ID", modId);
         tokens.put("GROUP", group);
-        tokens.put("PACKAGE", group);
+        tokens.put("PACKAGE", group + "." + modId);
 
         return tokens;
     }
